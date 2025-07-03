@@ -1,7 +1,23 @@
-<h1>Team Flags</h1>
-<table border="1">
-  <tr><th>Team</th><th>Flags</th></tr>
-  {% for team, count in flags.items() %}
-    <tr><td>{{ team }}</td><td>{{ count }}</td></tr>
-  {% endfor %}
+{% extends "base.html" %}
+{% block title %}Scoreboard{% endblock %}
+{% block content %}
+<h2>Team Flag Totals</h2>
+<table>
+  <thead>
+    <tr><th>Team</th><th>Flags 🚩</th></tr>
+  </thead>
+  <tbody>
+    {% for team, count in flags.items() %}
+      <tr style="background-color: 
+        {% if team == 'North' %}#d1c4e9
+        {% elif team == 'South' %}#f8bbd0
+        {% elif team == 'STP' %}#c8e6c9
+        {% else %}#eee
+        {% endif %};">
+        <td><strong>{{ team }}</strong></td>
+        <td>{{ count }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
 </table>
+{% endblock %}
