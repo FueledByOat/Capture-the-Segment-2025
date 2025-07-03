@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Strava Segment Leaderboard</title>
+</head>
+<body>
+    <h1>Best Efforts by Segment</h1>
+    <form method="get" action="/">
+        <label for="segment_id">Select Segment:</label>
+        <select name="segment_id" id="segment_id" onchange="this.form.submit()">
+            <option value="">--Choose--</option>
+            {% for s in segments %}
+                <option value="{{ s.segment_id }}" {% if selected_id == s.segment_id|string %}selected{% endif %}>
+                    {{ s.segment_name }} ({{ s.segment_id }})
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if efforts %}
+    <table border="1">
+        <tr><th>Segment ID</th><th>Segment Name</th><th>Athlete</th><th>Best Time (s)</th></tr>
+        {% for row in efforts %}
+        <tr>
+            <td><a href="https://www.strava.com/segments/{{ row.segment_id }}" target="_blank">{{ row.segment_id }}</a></td>
+            <td>{{ row.segment_name }}</td>
+            <td>{{ row.athlete_name }}</td>
+            <td>{{ row.best_time }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</body>
+</html>
