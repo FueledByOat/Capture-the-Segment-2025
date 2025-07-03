@@ -51,55 +51,81 @@ def get_best_efforts(segment_id):
 
 
 def calculate_flags():
+    """
+    Calculates team flag totals by joining segment efforts with the athletes table
+    to determine team composition and performance on each segment.
+    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM segment_teams")
+    # Get the designated owner team for each segment from the 'segment_teams' table
+    cur.execute("SELECT segment_id, owner_team FROM segment_teams")
     segment_owners = {row["segment_id"]: row["owner_team"] for row in cur.fetchall()}
 
+    # Get all unique segments that have at least one effort recorded
     cur.execute("SELECT DISTINCT segment_id FROM segment_efforts")
     segment_ids = [row["segment_id"] for row in cur.fetchall()]
 
+    # Initialize flag counts for each team
     flags = {"North": 0, "South": 0, "STP": 0}
 
+    # Process each segment individually
     for segment_id in segment_ids:
-        cur.execute("SELECT athlete_name, team_name FROM segment_efforts WHERE segment_id = ?", (segment_id,))
-        rows = cur.fetchall()
-        if not rows:
-            continue
-
         owner_team = segment_owners.get(segment_id)
         if not owner_team:
+            continue  # Skip this segment if it has no designated owner
+
+        # This single query now fetches all efforts for the segment AND joins with the
+        # 'athletes' table to get the team_name for each runner.
+        query = """
+            SELECT
+                e.elapsed_time,
+                a.team_name
+            FROM
+                segment_efforts e
+            JOIN
+                athletes a ON e.athlete_id = a.athlete_id
+            WHERE
+                e.segment_id = ?
+        """
+        cur.execute(query, (segment_id,))
+        all_efforts = cur.fetchall()
+
+        if not all_efforts:
             continue
 
+        # Logic for "Dub" segments (awarded for most participants)
         if owner_team == "Dub":
-            # All-or-nothing: count participants per team
             participation = {}
-            for row in rows:
-                team = row["team_name"]
-                participation[team] = participation.get(team, 0) + 1
+            for effort in all_efforts:
+                team = effort["team_name"]
+                if team:  # Ensure the athlete has a team
+                    participation[team] = participation.get(team, 0) + 1
+            
             if participation:
-                max_team = max(participation, key=participation.get)
-                if max_team in flags:
-                    flags[max_team] += 2  # 2 flags for most participants
+                winning_team = max(participation, key=participation.get)
+                if winning_team in flags:
+                    flags[winning_team] += 2  # 2 flags for the win
+
+        # Logic for standard segments (awarded based on "True Team Scoring")
         else:
-            # True Team scoring: rank by elapsed_time
-            cur.execute("SELECT athlete_name, team_name, elapsed_time FROM segment_efforts WHERE segment_id = ?", (segment_id,))
-            detailed_rows = cur.fetchall()
-            sorted_efforts = sorted(detailed_rows, key=lambda x: x["elapsed_time"])
+            sorted_efforts = sorted(all_efforts, key=lambda x: x["elapsed_time"])
             num_runners = len(sorted_efforts)
             team_points = {}
-            for i, row in enumerate(sorted_efforts):
-                team = row["team_name"]
-                pts = num_runners - i
-                team_points[team] = team_points.get(team, 0) + pts
+
+            for i, effort in enumerate(sorted_efforts):
+                team = effort["team_name"]
+                if team:  # Ensure the athlete has a team
+                    points = num_runners - i
+                    team_points[team] = team_points.get(team, 0) + points
+            
             if team_points:
-                max_team = max(team_points, key=team_points.get)
-                if max_team == owner_team:
-                    flags[max_team] += 1  # DEFEND
+                winning_team = max(team_points, key=team_points.get)
+                if winning_team == owner_team:
+                    flags[winning_team] += 1  # 1 flag for a successful DEFEND
                 else:
-                    flags[max_team] += 2  # CAPTURE
+                    flags[winning_team] += 2  # 2 flags for a successful CAPTURE
 
     conn.close()
     return flags
@@ -114,6 +140,11 @@ def home():
 def leaderboard():
     segments = get_segments()
     selected_id = request.args.get('segment_id')
+    if selected_id:
+        try:
+            best_efforts = get_best_efforts(int(selected_id))
+        except ValueError:
+            return "Invalid segment ID.", 400
     best_efforts = []
     if selected_id:
         best_efforts = get_best_efforts(int(selected_id))

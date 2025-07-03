@@ -100,6 +100,7 @@ def fetch_and_store_efforts(token, athlete_id, athlete_name, cur, segment_ids):
     """
     headers = {'Authorization': f'Bearer {token}'}
     after = 1751864400  # Start of tracking period
+    after = 1751418832 # Use this for testing 
     before = 1752454800  # End of tracking period
     
     params = {

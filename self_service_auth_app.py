@@ -35,11 +35,16 @@ def index():
 
 @app.route('/authorize')
 def authorize():
+    state = secrets.token_urlsafe(16)
+    session['oauth_state'] = state
     auth_url = f"https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=activity:read_all"
     return redirect(auth_url)
 
 @app.route('/callback')
 def callback():
+    state = request.args.get('state')
+    if not state or state != session.get('oauth_state'):
+        return "Invalid state parameter. Authorization failed.", 400
     code = request.args.get('code')
     if not code:
         return "Authorization failed", 400
