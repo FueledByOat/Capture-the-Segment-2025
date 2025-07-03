@@ -1,3 +1,5 @@
 *.db
 *.env
 /venv/
+pipeline.py
+self_service_auth_app.py

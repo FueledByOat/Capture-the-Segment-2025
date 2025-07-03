@@ -1,24 +1,19 @@
-# pipeline.py
-
-"""
-Strava Segment Data Pipeline - PostgreSQL Version
-
-Fetches segment efforts from Strava API for configured segments and stores them in PostgreSQL database.
-Handles token refresh, rate limiting, and batch database operations.
-"""
+#pipeline_logic.py
+# This file contains the logic from your original pipeline.py
+import logging
+import requests
+import time
+import os
+from datetime import datetime
+from dotenv import load_dotenv
 
 import psycopg2
 import psycopg2.extras
-import requests
-from datetime import datetime, timedelta
-import time
-from dotenv import load_dotenv
-import os
-import logging
+
+# You must deploy database.py and strava_utils.py with the function
+from database import get_db_connection
 from utils.strava_utils import refresh_access_token
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Segment definitions
@@ -33,21 +28,6 @@ CHALLENGE_SEGMENT_THREE = [37433791] # valid from 1752037200 to 1752123600
 
 ALL_SEGMENT_IDS = NORTH_SEGMENT_IDS + SOUTH_SEGMENT_IDS + STP_SEGMENT_IDS + CHALLENGE_SEGMENT_ONE + CHALLENGE_SEGMENT_TWO + CHALLENGE_SEGMENT_THREE
 TEST_SEGMENT = [1332276]
-
-# Segment cache to avoid repeated API calls
-segment_cache = {}
-
-# def get_db_connection():
-#     """Get PostgreSQL database connection"""
-#     load_dotenv("secrets.env")
-#     return psycopg2.connect(
-#         host=os.getenv("DB_HOST"),
-#         database=os.getenv("DB_NAME"),
-#         user=os.getenv("DB_USER"),
-#         password=os.getenv("DB_PASSWORD"),
-#         port=os.getenv("DB_PORT", 5432),
-#         sslmode='require'
-#     )
 
 def get_valid_challenge_segments(timestamp):
     """
@@ -70,35 +50,8 @@ def get_valid_challenge_segments(timestamp):
         
     return valid_segments
 
-def get_segment_info(segment_id, headers):
-    """
-    Cache segment metadata to avoid repeated lookups.
-    
-    Args:
-        segment_id (int): Strava segment ID
-        headers (dict): HTTP headers with auth token
-        
-    Returns:
-        dict: Segment metadata or None if failed
-    """
-    if segment_id not in segment_cache:
-        try:
-            response = requests.get(f"https://www.strava.com/api/v3/segments/{segment_id}", 
-                                  headers=headers, timeout=10)
-            time.sleep(0.1)  # Rate limiting
-            
-            if response.status_code == 200:
-                segment_cache[segment_id] = response.json()
-                logger.debug(f"Cached segment {segment_id}")
-            else:
-                logger.warning(f"Failed to fetch segment {segment_id}: {response.status_code}")
-                segment_cache[segment_id] = None
-                
-        except requests.RequestException as e:
-            logger.error(f"Error fetching segment {segment_id}: {e}")
-            segment_cache[segment_id] = None
-            
-    return segment_cache[segment_id]
+# Segment cache to avoid repeated API calls
+segment_cache = {}
 
 def fetch_and_store_efforts(token, athlete_id, athlete_name, cur, segment_ids):
     """
@@ -200,17 +153,18 @@ def fetch_and_store_efforts(token, athlete_id, athlete_name, cur, segment_ids):
             raise
 
 def update_tokens_and_fetch_activities():
-    """
-    Main function to update tokens and fetch segment efforts for all users.
-    """
-    load_dotenv("secrets.env")
+    """Main function to update tokens and fetch segment efforts for all users."""
+    logger = logging.getLogger(__name__)
+    load_dotenv()
+    
     client_id = os.getenv("CLIENT_ID")
     client_secret = os.getenv("CLIENT_SECRET")
     
     if not client_id or not client_secret:
         logger.error("Missing CLIENT_ID or CLIENT_SECRET in environment")
         return
-    
+
+     
     # Use TEST_SEGMENT for testing, ALL_SEGMENT_IDS for production
     SEGMENT_IDS = TEST_SEGMENT
     
@@ -264,6 +218,4 @@ def update_tokens_and_fetch_activities():
         raise
     finally:
         conn.close()
-
-if __name__ == "__main__":
-    update_tokens_and_fetch_activities()
+    logger.info("Pipeline execution finished.")
