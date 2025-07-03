@@ -1,0 +1,7 @@
+<h1>Team Flags</h1>
+<table border="1">
+  <tr><th>Team</th><th>Flags</th></tr>
+  {% for team, count in flags.items() %}
+    <tr><td>{{ team }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
