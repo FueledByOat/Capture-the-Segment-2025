@@ -21,7 +21,12 @@ def index():
     <p>Click below to authorize your Strava account for team segment tracking:</p>
     <a href="/authorize">Authorize Strava Account</a>
     <p>This will grant the application permission to read your activity data so it can be used for scoring in the challenge. Your tokens will be stored securely in the application database.</p>
-    ''')
+    <p>For transparency, the scope being requested is activity:read_all which grants an application permission to access an athlete's activity data, including activities with visibility set to "Only You".</p>
+    <p> Here's what that means:</p>
+    <li>Expanded Access: It allows an application to read activity data for activities that are visible to "Everyone", "Followers", and those marked as "Only You", which are typically private.</li>
+    <p> Why is this being requested?</p>
+    <p> This access allows us programmatically pull data for all CTS users for scoring. The access token provided will be stored securely in a database in Microsoft's Azure platform. Once CTS is over, that resource will be destroyed, and access will no longer be possible. To allay any further concern the access the token provided expires shortly after it is not refreshed.</p>
+                                  ''')
 
 
 @auth_bp.route('/authorize')
