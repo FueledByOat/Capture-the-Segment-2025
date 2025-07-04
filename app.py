@@ -133,6 +133,47 @@ def calculate_flags():
     conn.close()
     return flags
 
+@app.route('/export/all_efforts')
+def export_all_efforts():
+    """
+    Exports a single CSV file containing all segment efforts,
+    ordered by segment_id, then by elapsed_time.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # This query gets all efforts and sorts them correctly in one go
+    query = """
+        SELECT athlete_id, athlete_name, segment_id, elapsed_time, start_date_local
+        FROM segment_efforts
+        ORDER BY segment_id, elapsed_time ASC;
+    """
+    cur.execute(query)
+    all_efforts = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Explicitly define headers to ensure correct column order
+    headers = ['athlete_id', 'athlete_name', 'segment_id', 'elapsed_time', 'start_date_local']
+    writer.writerow(headers)
+
+    # Write data rows
+    if all_efforts:
+        for row in all_efforts:
+            writer.writerow([row[key] for key in headers])
+
+    output.seek(0)
+    
+    return send_file(
+        io.BytesIO(output.read().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='all_segment_efforts.csv'
+    )
+
 @app.route('/')
 def home():
     return render_template('home.html')

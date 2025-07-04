@@ -2,6 +2,11 @@
 {% block title %}Scoreboard{% endblock %}
 {% block content %}
 <h2>Team Flag Totals</h2>
+
+<p>
+  <a href="{{ url_for('export_all_efforts') }}" class="button">⬇️ Export All Segment Efforts</a>
+</p>
+
 <table>
   <thead>
     <tr><th>Team</th><th>Flags 🚩</th></tr>
