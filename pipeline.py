@@ -15,6 +15,8 @@ import time
 from dotenv import load_dotenv
 import os
 import logging
+
+from database import get_db_connection
 from utils.strava_utils import refresh_access_token
 
 # Configure logging
@@ -212,7 +214,7 @@ def update_tokens_and_fetch_activities():
         return
     
     # Use TEST_SEGMENT for testing, ALL_SEGMENT_IDS for production
-    SEGMENT_IDS = TEST_SEGMENT
+    SEGMENT_IDS = ALL_SEGMENT_IDS
     
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
