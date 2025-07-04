@@ -4,6 +4,9 @@ import io
 import os
 from dotenv import load_dotenv
 
+import psycopg2
+import psycopg2.extras
+
 # Import components
 from database import get_db_connection
 from auth_blueprint import auth_bp
