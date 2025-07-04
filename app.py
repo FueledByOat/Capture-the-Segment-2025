@@ -167,9 +167,7 @@ def export_all_efforts():
     if all_efforts:
         for row in all_efforts:
             writer.writerow([row[key] for key in headers])
-
     output.seek(0)
-    
     return send_file(
         io.BytesIO(output.read().encode('utf-8')),
         mimetype='text/csv',
@@ -197,11 +195,22 @@ def leaderboard():
 # ... (Your /scoreboard and /export/leaderboard routes remain the same) ...
 @app.route('/scoreboard')
 def scoreboard():
-    return render_template('scoreboard.html')
+    flag_results = calculate_flags()
+    return render_template('scoreboard.html', flags=flag_results)
 
 @app.route('/export/leaderboard')
 def export_leaderboard():
-    return "Export Page"
+    segment_id = request.args.get('segment_id')
+    if not segment_id:
+        return "No segment selected.", 400
+    results = get_best_efforts(int(segment_id))
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Athlete', 'Segment ID', 'Segment Name', 'Best Time', 'Points'])
+    for row in results:
+        writer.writerow([row['athlete_name'], row['segment_id'], row['segment_name'], row['best_time'], row['points']])
+    output.seek(0)
+    return send_file(io.BytesIO(output.read().encode()), mimetype='text/csv', as_attachment=True, download_name='leaderboard.csv')
 
 if __name__ == '__main__':
     # Use the PORT environment variable if available, for services like Azure App Service
