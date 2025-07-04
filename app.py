@@ -197,7 +197,7 @@ def leaderboard():
 # ... (Your /scoreboard and /export/leaderboard routes remain the same) ...
 @app.route('/scoreboard')
 def scoreboard():
-    return "Scoreboard Page"
+    return render_template('scoreboard.html')
 
 @app.route('/export/leaderboard')
 def export_leaderboard():
