@@ -21,7 +21,7 @@ This project is a web-based application built with Flask and SQLite to track and
 
 - Python 3
 - Flask
-- SQLite
+- SQLite (now Postgres)
 - HTML/CSS (templated with Jinja2)
 - Strava API (OAuth2 access and activity data)
 - CSV and in-browser rendering
@@ -30,22 +30,37 @@ This project is a web-based application built with Flask and SQLite to track and
 
 ## 🗂 Project Structure
 ```bash
-strava-segment-tracker/
-│
-├── app.py # Main Flask app with leaderboard + scoring logic
-├── strava_efforts.db # SQLite DB with segments, efforts, and tokens
+Capture-the-Segment/
+|
+├── .github/ -- Github Actions Workflows
+│   └── workflows/
+│       ├── webapp-deploy.yml
+│       └── function-deploy.yml
+|
+├── pipeline_function/ -- Azure Deployment Files
+│   ├── __init__.py
+│   ├── function.json
+│   ├── pipeline_logic.py
+│   ├── requirements.txt
+│   ├── database.py
+│   └── utils/
+│       └── strava_utils.py
+|
 ├── templates/
-│ ├── base.html
-│ ├── home.html
-│ ├── leaderboard.html
-│ └── scoreboard.html
-├── static/
-│ └── style.css # Custom styles using defined color palette
+│   ├── base.html
+│   ├── home.html
+│   ├── leaderboard.html
+│   └── scoreboard.html
+|
 ├── utils/
-│ └── strava_utils.py # (optional) Utility functions for token refresh, API calls
-├── config.py # Stores environment variable references
-├── secrets.env # Environment secrets like STRAVA client ID/secret
-└── README.md
+│   └── strava_utils.py
+|
+├── app.py
+├── auth_blueprint.py
+├── database.py
+├── requirements.txt
+├── .env
+└── .gitignore
 ```
 
 ## ⚙️ Setup Instructions
@@ -58,7 +73,7 @@ cd strava-segment-tracker
 pip install -r requirements.txt
 ```
 
-2. Set up environment
+2. Set up environment (Local)
 
 Create a .env or secrets.env file with:
 
@@ -99,17 +114,46 @@ To download leaderboard data for a selected segment:
 2. Select a segment
 3. Click “⬇️ Export CSV”
 
-## 🧪 Testing with Sample Data
+## 💾 Database Structure
 
-You can manually populate ```strava_efforts.db``` using the ```sqlite3``` CLI or with Python scripts using ```INSERT INTO segment_efforts (...) VALUES (...)```.
+```sql
+-- Credentials table for storing Strava authentication tokens
+CREATE TABLE IF NOT EXISTS credentials (
+    athlete_id INTEGER PRIMARY KEY,
+    athlete_name TEXT NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
+);
 
-Each effort should include:
+-- Segment efforts table for storing activity data
+CREATE TABLE IF NOT EXISTS segment_efforts (
+    id SERIAL PRIMARY KEY,
+    athlete_name TEXT NOT NULL,
+    athlete_id INTEGER NOT NULL,
+    segment_id INTEGER NOT NULL,
+    segment_name TEXT NOT NULL,
+    activity_id BIGINT NOT NULL,
+    elapsed_time INTEGER NOT NULL,
+    start_date_local TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(athlete_id, segment_id, activity_id)
+);
 
-- athlete_name
-- segment_id
-- segment_name
-- elapsed_time
-- team_name
+-- Athletes table for team assignment
+CREATE TABLE IF NOT EXISTS athletes (
+    athlete_id INTEGER PRIMARY KEY,
+    athlete_name TEXT NOT NULL,
+    team_name TEXT NOT NULL
+);
+
+-- Segment teams table for defining segment ownership
+CREATE TABLE IF NOT EXISTS segment_teams (
+    segment_id INTEGER PRIMARY KEY,
+    owner_team TEXT NOT NULL,
+    segment_name TEXT
+);
+```
 
 ## 📄 License
 
