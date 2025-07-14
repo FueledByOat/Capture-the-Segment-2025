@@ -1,5 +1,10 @@
 *.db
 *.env
+*.csv
+*.xlsx
+*.png
+*.json
+dev.ipynb
 /venv/
 pipeline.py
 self_service_auth_app.py
